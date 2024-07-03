@@ -1,3 +1,5 @@
+import warnings
+
 import flet as ft
 
 
@@ -9,13 +11,73 @@ class Controller:
         self._model = model
 
     def handleCreaGrafo(self, e):
-        pass
+
+        try:
+            totDint = int(self._view._txtInDurata.value)
+
+        except ValueError:
+            warnings.warn_explicit(message='duration not integer', category= TypeError, filename='controller.py',
+                                   lineno=15)
+            return
+
+        self._model.buildGraph(totDint)
+        self._view.txt_result.controls.clear()
+        self._view.txt_result.controls.append(ft.Text("Grafo creato!"))
+        n, a = self._model.getGraphDetails()
+        self._view.txt_result.controls.append(ft.Text(f"#Vertici: {n}"))
+        self._view.txt_result.controls.append(ft.Text(f"#Archi: {a}"))
+
+        nodes = self._model.getNodes()
+        nodes.sort(key = lambda x:x.Title)
+        listDD= map(lambda x : ft.dropdown.Option(data=x,text=x.Title, on_click=self.getSelectedAlbum), nodes)
+        self._view._ddAlbum.options.extend(listDD)
+        self._view.update_page()
+
+
 
     def getSelectedAlbum(self, e):
-        pass
+        print("getSelectedAlbum called")
+        if e.control.data is None:
+            self._choiceAlbum = None
+        else:
+            self._choiceAlbum = e.control.data
+        print(self._choiceAlbum)
 
     def handleAnalisiComp(self, e):
-        pass
+        if self._choiceAlbum is None:
+            warnings.warn("Album field not selected.")
+            return
 
+
+        lenconn, durata = self._model.getComponenteConnessa(self._choiceAlbum)
+        self._view.txt_result.controls.clear()
+        self._view.txt_result.controls.append(ft.Text("Componente connessa - Greatest Hits"))
+        self._view.txt_result.controls.append(ft.Text(
+            f"Dimensione componente = {lenconn} "))
+        self._view.txt_result.controls.append(ft.Text(
+            f"Durata componente = {durata} "))
+        self._view.update_page()
     def handleGetSetAlbum(self, e):
-        pass
+        dTOTtxt = self._view._txtInSoglia.value
+        try:
+            dTOT = int(dTOTtxt)
+        except ValueError:
+            warnings.warn("Soglia not integer.")
+            self._view.txt_result.controls.clear()
+            self._view.txt_result.controls.append(ft.Text(f"Soglia inserita non valida. Inserire un intero. "))
+            return
+
+        if self._choiceAlbum is None:
+            warnings.warn("Attenzione, album non selezionato. ")
+            self._view.txt_result.controls.clear()
+            self._view.txt_result.controls.append(ft.Text(f"Selezionare un album."))
+            return
+
+        setAlbum, totD = self._model.cercaPercorso(self._choiceAlbum, dTOT)
+
+        self._view.txt_result.controls.clear()
+        self._view.txt_result.controls.append(ft.Text(f"Set di album ottimo trovato con durata totale {totD}."))
+        for s in setAlbum:
+            self._view.txt_result.controls.append(ft.Text(f"{str(s)}"))
+
+        self._view.update_page()
